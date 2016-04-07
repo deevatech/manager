@@ -19,7 +19,7 @@ func main() {
 
 	port := os.Getenv("DEEVA_MANAGER_PORT")
 	if len(port) == 0 {
-		port = "9090"
+		port = "8080"
 	}
 
 	log.Printf("Starting in %s mode on port %s\n", gin.Mode(), port)
