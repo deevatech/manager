@@ -1,0 +1,3 @@
+package: github.com/deevatech/manager
+import:
+- package: github.com/gin-gonic/gin
