@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/deevatech/manager/runner"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -27,5 +28,9 @@ func main() {
 }
 
 func handleRunRequest(c *gin.Context) {
+	if err := runner.Run(); err != nil {
+		log.Println(err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{})
 }
