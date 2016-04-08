@@ -11,3 +11,7 @@ type RunResults struct {
 }
 
 type JsonResult map[string]interface{}
+
+type TestSubmitParams struct {
+	Code string `json:"code" binding:"required"`
+}

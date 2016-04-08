@@ -20,6 +20,7 @@ func main() {
 	router := gin.Default()
 	router.POST("/run", handleRunRequest)
 	router.GET("/tests/:id", handleTestLookupRequest)
+	router.POST("/tests/:id/submit", handleTestSubmitRequest)
 
 	port := os.Getenv("DEEVA_MANAGER_PORT")
 	if len(port) == 0 {
@@ -59,4 +60,37 @@ func handleTestLookupRequest(c *gin.Context) {
 
 	test := tests.FindById(id)
 	c.JSON(http.StatusOK, test)
+}
+
+func handleTestSubmitRequest(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	// lookup test
+	test := tests.FindById(id)
+
+	var submit TestSubmitParams
+	if errParams := c.BindJSON(&submit); errParams == nil {
+		run := RunParams{
+			Language: test.Language,
+			Source:   submit.Code,
+			Spec:     test.Spec,
+		}
+		if result, errRun := runner.Run(run); errRun == nil {
+			c.JSON(http.StatusOK, result)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": errRun,
+			})
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": errParams,
+		})
+	}
 }
