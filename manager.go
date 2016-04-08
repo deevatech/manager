@@ -33,6 +33,8 @@ func main() {
 }
 
 func handleRunRequest(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
+
 	var run RunParams
 	if errParams := c.BindJSON(&run); errParams == nil {
 		if result, errRun := runner.Run(run); errRun == nil {
@@ -50,6 +52,8 @@ func handleRunRequest(c *gin.Context) {
 }
 
 func handleTestLookupRequest(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -63,6 +67,8 @@ func handleTestLookupRequest(c *gin.Context) {
 }
 
 func handleTestSubmitRequest(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
