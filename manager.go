@@ -82,11 +82,13 @@ func handleTestSubmitRequest(c *gin.Context) {
 
 	var submit TestSubmitParams
 	if errParams := c.BindJSON(&submit); errParams == nil {
+		log.Printf("TestSubmitParams: %#v", submit)
 		run := RunParams{
 			Language: test.Language,
 			Source:   submit.Code,
 			Spec:     test.Spec,
 		}
+		log.Printf("RunParams: %#v", run)
 		if result, errRun := runner.Run(run); errRun == nil {
 			c.JSON(http.StatusOK, result)
 		} else {
