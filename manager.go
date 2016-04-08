@@ -21,6 +21,7 @@ func main() {
 	router.POST("/run", handleRunRequest)
 	router.GET("/tests/:id", handleTestLookupRequest)
 	router.POST("/tests/:id/submit", handleTestSubmitRequest)
+	router.OPTIONS("/tests/:id/submit", handleOptionsTestSubmitRequest)
 
 	port := os.Getenv("DEEVA_MANAGER_PORT")
 	if len(port) == 0 {
@@ -101,4 +102,8 @@ func handleTestSubmitRequest(c *gin.Context) {
 			"error": errParams,
 		})
 	}
+}
+
+func handleOptionsTestSubmitRequest(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
 }
