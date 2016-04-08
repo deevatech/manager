@@ -1,5 +1,5 @@
-hash: 5791fc0fcc65372dd8834e2f1959485cb48fa5af1f51b5e037bcc85be6c083d6
-updated: 2016-04-07T13:17:29.151237323-07:00
+hash: 10331b212af55eecbf13eb329ba4cd54d0001ba95d153db637efe7d0ca28fa53
+updated: 2016-04-07T16:03:44.098945381-07:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
@@ -36,10 +36,15 @@ imports:
   - proto
 - name: github.com/manucorporat/sse
   version: ee05b128a739a0fb76c7ebd3ae4810c1de808d6d
+- name: github.com/moul/http2curl
+  version: 1812aee76a1ce98d604a44200c6a23c689b17a89
+- name: github.com/parnurzeal/gorequest
+  version: 91b42fce877cc6af96c45818665a4c615cc5f4ee
 - name: golang.org/x/net
   version: f315505cf3349909cdf013ea56690da34e96a451
   subpackages:
   - context
+  - publicsuffix
 - name: gopkg.in/go-playground/validator.v8
   version: c193cecd124b5cc722d7ee5538e945bdb3348435
 devImports: []

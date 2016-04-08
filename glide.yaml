@@ -2,4 +2,7 @@ package: github.com/deevatech/manager
 import:
 - package: github.com/gin-gonic/gin
 - package: github.com/fsouza/go-dockerclient
-- package: github.com/davecgh/go-spew/spew
+- package: github.com/davecgh/go-spew
+  subpackages:
+  - spew
+- package: github.com/parnurzeal/gorequest

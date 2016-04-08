@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/deevatech/manager/runner"
+	. "github.com/deevatech/manager/types"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -28,9 +29,18 @@ func main() {
 }
 
 func handleRunRequest(c *gin.Context) {
-	if err := runner.Run(); err != nil {
-		log.Println(err)
+	var run RunParams
+	if errParams := c.BindJSON(&run); errParams == nil {
+		if result, errRun := runner.Run(run); errRun == nil {
+			c.JSON(http.StatusOK, result)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": errRun,
+			})
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": errParams,
+		})
 	}
-
-	c.JSON(http.StatusOK, gin.H{})
 }

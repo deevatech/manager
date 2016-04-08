@@ -3,21 +3,23 @@ package runner
 import (
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
+	. "github.com/deevatech/manager/types"
 	"github.com/fsouza/go-dockerclient"
-	"strings"
-	//"io"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
 type Context struct {
-	Client     *docker.Client
-	ImageName  string
-	ImageTag   string
-	Args       []string
-	RunnerPort docker.Port
+	Client            *docker.Client
+	ImageName         string
+	ImageTag          string
+	Args              []string
+	RunnerPort        docker.Port
+	ContainerID       string
+	ContainerHostPort string
 }
 
 var context *Context
@@ -58,20 +60,8 @@ func NewContext() *Context {
 	}
 }
 
-func Run() error {
-	context.Start()
-
-	/* r, err := dockerRun(client, "deeva/runner-service", []string{})*/
-	//defer func() {
-	//if err := r.Close(); err != nil {
-	//log.Printf("r.Close(): %v", err)
-	//}
-	//}()
-
-	//n, err := io.Copy(os.Stdout, r)
-	//log.Printf("io.Copy: %v, %v", n, err)
-
-	return nil
+func Run(p RunParams) (*RunResults, error) {
+	return context.Start(p)
 }
 
 func (ctx Context) PullImage() error {
@@ -98,24 +88,22 @@ func (ctx Context) PullImage() error {
 	return nil
 }
 
-func (ctx *Context) Start() {
+func (ctx *Context) Start(p RunParams) (*RunResults, error) {
 	log.Printf("Starting container with context %v", ctx)
 
 	// create new container
-	ports := make(map[docker.Port]struct{})
-	ports[ctx.RunnerPort] = struct{}{}
-
 	container, err := ctx.Client.CreateContainer(docker.CreateContainerOptions{
 		Config: &docker.Config{
-			Image:        ctx.ImageName,
-			Cmd:          ctx.Args,
-			ExposedPorts: ports,
+			Image: ctx.ImageName,
+			Cmd:   ctx.Args,
 		},
 	})
 	if err != nil {
 		log.Printf("Failed creating container: %s", err)
-		return
+		return nil, err
 	} else {
+		ctx.ContainerID = container.ID
+
 		defer func() {
 			if err := ctx.Client.RemoveContainer(docker.RemoveContainerOptions{ID: container.ID, Force: true}); err != nil {
 				log.Println(err)
@@ -126,10 +114,9 @@ func (ctx *Context) Start() {
 	}
 	log.Printf("Created container: %s", container.ID)
 
-	// start container
 	if err = ctx.Client.StartContainer(container.ID, &docker.HostConfig{}); err != nil {
 		log.Printf("Starting container %+v ... failed: %v", container.ID, err)
-		return
+		return nil, err
 	} else {
 		defer func() {
 			if err := ctx.Client.StopContainer(container.ID, 0); err != nil {
@@ -144,25 +131,30 @@ func (ctx *Context) Start() {
 	// wait for container to wake up
 	if err := waitStarted(ctx.Client, container.ID, 1*time.Second); err != nil {
 		log.Printf("Couldn't reach runner container %s, aborting!", container.ID)
-		return
+		return nil, err
 	}
 	log.Println("Container started!")
 
 	if container, err = ctx.Client.InspectContainer(container.ID); err != nil {
 		log.Printf("Couldn't inspect runner container %s, aborting!", container.ID)
-		return
+		return nil, err
 	}
 	log.Println("Container inspected!")
 
 	// determine IP address
 	containerIP := strings.TrimSpace(container.NetworkSettings.IPAddress)
 
-	// wait MySQL to wake up
+	// wait for runner-service to wake up
 	hostport := fmt.Sprintf("%s:%s", containerIP, ctx.RunnerPort)
 	if err := waitReachable(hostport, 1*time.Second); err != nil {
 		log.Printf("Couldn't reach runner application in container %s via %s, aborting!", container.ID, hostport)
+		return nil, err
+	} else {
+		ctx.ContainerHostPort = hostport
 	}
 	log.Println("Container reached!")
+
+	return context.Request(p)
 }
 
 // waitReachable waits for hostport to became reachable for the maxWait time.
