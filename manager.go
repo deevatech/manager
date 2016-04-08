@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"github.com/deevatech/manager/models/tests"
 	"github.com/deevatech/manager/runner"
 	. "github.com/deevatech/manager/types"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 func init() {
@@ -17,6 +19,7 @@ func init() {
 func main() {
 	router := gin.Default()
 	router.POST("/run", handleRunRequest)
+	router.GET("/tests/:id", handleTestLookupRequest)
 
 	port := os.Getenv("DEEVA_MANAGER_PORT")
 	if len(port) == 0 {
@@ -43,4 +46,17 @@ func handleRunRequest(c *gin.Context) {
 			"error": errParams,
 		})
 	}
+}
+
+func handleTestLookupRequest(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	test := tests.FindById(id)
+	c.JSON(http.StatusOK, test)
 }
