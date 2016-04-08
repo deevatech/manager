@@ -8,7 +8,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -91,12 +90,21 @@ func (ctx Context) PullImage() error {
 func (ctx *Context) Start(p RunParams) (*RunResults, error) {
 	log.Printf("Starting container with context %v", ctx)
 
+	portBindings := map[docker.Port][]docker.PortBinding{
+		ctx.RunnerPort + "/tcp": []docker.PortBinding{},
+	}
+	hostConfigOpts := &docker.HostConfig{
+		PublishAllPorts: true,
+		PortBindings:    portBindings,
+	}
 	// create new container
 	container, err := ctx.Client.CreateContainer(docker.CreateContainerOptions{
 		Config: &docker.Config{
-			Image: ctx.ImageName,
-			Cmd:   ctx.Args,
+			Image:        ctx.ImageName,
+			Cmd:          ctx.Args,
+			ExposedPorts: map[docker.Port]struct{}{ctx.RunnerPort + "/tcp": {}},
 		},
+		HostConfig: hostConfigOpts,
 	})
 	if err != nil {
 		log.Printf("Failed creating container: %s", err)
@@ -114,7 +122,7 @@ func (ctx *Context) Start(p RunParams) (*RunResults, error) {
 	}
 	log.Printf("Created container: %s", container.ID)
 
-	if err = ctx.Client.StartContainer(container.ID, &docker.HostConfig{}); err != nil {
+	if err = ctx.Client.StartContainer(container.ID, nil); err != nil {
 		log.Printf("Starting container %+v ... failed: %v", container.ID, err)
 		return nil, err
 	} else {
@@ -129,7 +137,7 @@ func (ctx *Context) Start(p RunParams) (*RunResults, error) {
 	log.Printf("Started container: %+v", spew.Sdump(container))
 
 	// wait for container to wake up
-	if err := waitStarted(ctx.Client, container.ID, 1*time.Second); err != nil {
+	if err := waitStarted(ctx.Client, container.ID, 5*time.Second); err != nil {
 		log.Printf("Couldn't reach runner container %s, aborting!", container.ID)
 		return nil, err
 	}
@@ -142,19 +150,23 @@ func (ctx *Context) Start(p RunParams) (*RunResults, error) {
 	log.Println("Container inspected!")
 
 	// determine IP address
-	containerIP := strings.TrimSpace(container.NetworkSettings.IPAddress)
+	log.Printf("Networking: %v", spew.Sdump(container.NetworkSettings))
+	activePortBind := container.NetworkSettings.Ports[ctx.RunnerPort+"/tcp"][0]
+	containerIP := activePortBind.HostIP
+	containerPort := activePortBind.HostPort
 
 	// wait for runner-service to wake up
-	hostport := fmt.Sprintf("%s:%s", containerIP, ctx.RunnerPort)
-	if err := waitReachable(hostport, 1*time.Second); err != nil {
-		log.Printf("Couldn't reach runner application in container %s via %s, aborting!", container.ID, hostport)
+	hostport := fmt.Sprintf("%s:%s", containerIP, containerPort)
+	if err := waitReachable(hostport, 5*time.Second); err != nil {
+		log.Printf("Couldn't reach runner application in container %s via %s, aborting! (Err: %s)", container.ID, hostport, err)
 		return nil, err
 	} else {
 		ctx.ContainerHostPort = hostport
 	}
 	log.Println("Container reached!")
 
-	return context.Request(p)
+	result, err := context.Request(p)
+	return result, err
 }
 
 // waitReachable waits for hostport to became reachable for the maxWait time.
