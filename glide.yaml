@@ -6,3 +6,6 @@ import:
   subpackages:
   - spew
 - package: github.com/parnurzeal/gorequest
+- package: github.com/jinzhu/gorm
+- package: github.com/jinzhu/inflection
+- package: github.com/go-sql-driver/mysql
